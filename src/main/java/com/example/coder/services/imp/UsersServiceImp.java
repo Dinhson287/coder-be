@@ -1,12 +1,12 @@
 package com.example.coder.services.imp;
 
-
 import com.example.coder.model.Users;
 import com.example.coder.repo.UsersRepo;
 import com.example.coder.services.UsersService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -18,12 +18,16 @@ import java.util.Optional;
 public class UsersServiceImp implements UsersService {
 
     private final UsersRepo usersRepo;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public ResponseEntity<Users> addUser(Users user) {
         validateUser(user);
-        usersRepo.save(user);
-        return ResponseEntity.ok(user);
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        Users savedUser = usersRepo.save(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
     @Override
@@ -65,7 +69,7 @@ public class UsersServiceImp implements UsersService {
             existingUser.setUsername(user.getUsername().trim());
         }
         if (user.getPassword() != null && !user.getPassword().trim().isEmpty()) {
-            existingUser.setPassword(user.getPassword());
+            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
         }
         if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
             existingUser.setEmail(user.getEmail().trim());
@@ -97,36 +101,17 @@ public class UsersServiceImp implements UsersService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User object cannot be null");
         }
 
-        if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username cannot be empty");
-        }
-        if (user.getUsername().length() > 100) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username must be less than 100 characters");
-        }
+        validateUsername(user.getUsername());
+        validatePassword(user.getPassword());
+        validateEmail(user.getEmail());
+
         if (usersRepo.existsByUsername(user.getUsername())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
 
-        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password cannot be empty");
-        }
-        if (user.getPassword().length() > 255) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be less than 255 characters");
-        }
-
-        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email cannot be empty");
-        }
-        if (user.getEmail().length() > 150) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email must be less than 150 characters");
-        }
-        if (!user.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid email format");
-        }
         if (usersRepo.existsByEmail(user.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
-
     }
 
     private void validateUserForUpdate(Long id, Users user) {
@@ -159,8 +144,11 @@ public class UsersServiceImp implements UsersService {
         if (username == null || username.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username cannot be empty");
         }
-        if (username.length() > 100) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username must be less than 100 characters");
+        if (username.length() < 3 || username.length() > 50) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username must be between 3 and 50 characters");
+        }
+        if (!username.matches("^[a-zA-Z0-9_]+$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username can only contain letters, numbers and underscore");
         }
     }
 
@@ -168,8 +156,8 @@ public class UsersServiceImp implements UsersService {
         if (password == null || password.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password cannot be empty");
         }
-        if (password.length() > 255) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be less than 255 characters");
+        if (password.length() < 6 || password.length() > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be between 6 and 100 characters");
         }
     }
 

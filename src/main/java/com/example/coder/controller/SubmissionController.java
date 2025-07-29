@@ -3,12 +3,15 @@ package com.example.coder.controller;
 import com.example.coder.DTOs.SubmissionCreateDTO;
 import com.example.coder.DTOs.SubmissionResponseDTO;
 import com.example.coder.DTOs.SubmissionUpdateDTO;
+import com.example.coder.model.Users;
+import com.example.coder.security.CustomUserDetailsService;
 import com.example.coder.services.SubmissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.data.domain.Page;
@@ -22,6 +25,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class SubmissionController {
     private final SubmissionService submissionService;
+    private final CustomUserDetailsService userDetailsService;
 
     @PostMapping
     public ResponseEntity<SubmissionResponseDTO> createSubmission(
@@ -126,10 +130,13 @@ public class SubmissionController {
     }
 
     private Long getCurrentUserId(Authentication auth) {
-        return 1;
+        String username = auth.getName();
+        Users user = userDetailsService.getUserByUsername(username);
+        return user.getId();
     }
 
     private boolean isCurrentUserAdmin(Authentication auth) {
-        return false;
+        return auth.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
     }
 }
