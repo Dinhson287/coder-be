@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -28,12 +29,13 @@ public class SubmissionController {
     private final CustomUserDetailsService userDetailsService;
 
     @PostMapping
-    public ResponseEntity<SubmissionResponseDTO> createSubmission(
-            @Valid @RequestBody SubmissionCreateDTO dto,
-            Authentication auth) {
-        Long userId = getCurrentUserId(auth);
-        SubmissionResponseDTO response = submissionService.createSubmission(userId, dto);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> createSubmission(@Valid @RequestBody SubmissionCreateDTO dto) {
+        try {
+            SubmissionResponseDTO response = submissionService.createSubmission(dto.getUserId(), dto);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}")
@@ -42,101 +44,80 @@ public class SubmissionController {
         return ResponseEntity.ok(response);
     }
 
-    // Lấy submissions của user hiện tại
+    // THAY ĐỔI: Nhận userId từ query param
     @GetMapping("/my-submissions")
-    public ResponseEntity<List<SubmissionResponseDTO>> getMySubmissions(Authentication auth) {
-        Long userId = getCurrentUserId(auth);
+    public ResponseEntity<List<SubmissionResponseDTO>> getMySubmissions(@RequestParam Long userId) {
         List<SubmissionResponseDTO> submissions = submissionService.getSubmissionsByUser(userId);
         return ResponseEntity.ok(submissions);
     }
 
-    // Lấy submissions của user với pagination
     @GetMapping("/my-submissions/paged")
     public ResponseEntity<Page<SubmissionResponseDTO>> getMySubmissionsPaged(
+            @RequestParam Long userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            Authentication auth) {
-        Long userId = getCurrentUserId(auth);
+            @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<SubmissionResponseDTO> submissions = submissionService.getSubmissionsByUserPaged(userId, pageable);
         return ResponseEntity.ok(submissions);
     }
 
-    // Lấy submissions theo exercise
     @GetMapping("/exercise/{exerciseId}")
     public ResponseEntity<List<SubmissionResponseDTO>> getSubmissionsByExercise(@PathVariable Long exerciseId) {
         List<SubmissionResponseDTO> submissions = submissionService.getSubmissionsByExercise(exerciseId);
         return ResponseEntity.ok(submissions);
     }
 
-    // Lấy submissions của user cho exercise cụ thể
     @GetMapping("/exercise/{exerciseId}/my-submissions")
     public ResponseEntity<List<SubmissionResponseDTO>> getMySubmissionsForExercise(
             @PathVariable Long exerciseId,
-            Authentication auth) {
-        Long userId = getCurrentUserId(auth);
+            @RequestParam Long userId) {
         List<SubmissionResponseDTO> submissions = submissionService.getUserSubmissionsForExercise(userId, exerciseId);
         return ResponseEntity.ok(submissions);
     }
 
-    // Lấy submission thành công gần nhất
     @GetMapping("/exercise/{exerciseId}/latest-success")
     public ResponseEntity<SubmissionResponseDTO> getLatestSuccessfulSubmission(
             @PathVariable Long exerciseId,
-            Authentication auth) {
-        Long userId = getCurrentUserId(auth);
+            @RequestParam Long userId) {
         Optional<SubmissionResponseDTO> submission = submissionService.getLatestSuccessfulSubmission(userId, exerciseId);
         return submission.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
-    // Admin: Lấy submissions pending
+    // Admin endpoints - vẫn cần authentication
     @GetMapping("/pending")
-    public ResponseEntity<List<SubmissionResponseDTO>> getPendingSubmissions() {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<SubmissionResponseDTO>> getPendingSubmissions(Authentication auth) {
         List<SubmissionResponseDTO> submissions = submissionService.getPendingSubmissions();
         return ResponseEntity.ok(submissions);
     }
 
-    // Admin: Cập nhật kết quả submission
     @PutMapping("/{id}/result")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SubmissionResponseDTO> updateSubmissionResult(
             @PathVariable Long id,
-            @RequestBody SubmissionUpdateDTO dto) {
+            @RequestBody SubmissionUpdateDTO dto,
+            Authentication auth) {
         SubmissionResponseDTO response = submissionService.updateSubmissionResult(id, dto);
         return ResponseEntity.ok(response);
     }
 
-    // Thống kê submissions của user
     @GetMapping("/stats/my-stats")
-    public ResponseEntity<List<Object[]>> getMySubmissionStats(Authentication auth) {
-        Long userId = getCurrentUserId(auth);
+    public ResponseEntity<List<Object[]>> getMySubmissionStats(@RequestParam Long userId) {
         List<Object[]> stats = submissionService.getSubmissionStatsByUser(userId);
         return ResponseEntity.ok(stats);
     }
 
-    // Admin: Thống kê submissions theo language
     @GetMapping("/stats/by-language")
-    public ResponseEntity<List<Object[]>> getSubmissionStatsByLanguage() {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Object[]>> getSubmissionStatsByLanguage(Authentication auth) {
         List<Object[]> stats = submissionService.getSubmissionStatsByLanguage();
         return ResponseEntity.ok(stats);
     }
 
-    // Xóa submission
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSubmission(@PathVariable Long id, Authentication auth) {
-        Long userId = getCurrentUserId(auth);
-        boolean isAdmin = isCurrentUserAdmin(auth);
-        submissionService.deleteSubmission(id, userId, isAdmin);
+    public ResponseEntity<Void> deleteSubmission(@PathVariable Long id, @RequestParam Long userId) {
+
+        submissionService.deleteSubmission(id, userId, false);
         return ResponseEntity.noContent().build();
-    }
-
-    private Long getCurrentUserId(Authentication auth) {
-        String username = auth.getName();
-        Users user = userDetailsService.getUserByUsername(username);
-        return user.getId();
-    }
-
-    private boolean isCurrentUserAdmin(Authentication auth) {
-        return auth.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
     }
 }

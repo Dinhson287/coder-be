@@ -5,6 +5,7 @@ import com.example.coder.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -59,13 +60,12 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/auth/**").permitAll()
-                                .requestMatchers("/api/exercises/**").permitAll() // Allow public access to exercises
-                                .requestMatchers("/api/languages/**").permitAll() // Allow public access to languages
+                                .requestMatchers("/api/exercises/**").permitAll() // Public access
+                                .requestMatchers("/api/languages/**").permitAll() // Public access
+                                .requestMatchers("/api/submissions/**").permitAll() // THAY ĐỔI: Cho phép tất cả submissions không cần auth
                                 .requestMatchers("/api/user").hasRole("ADMIN") // Only admin can create users
                                 .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                                .requestMatchers("/api/submissions/pending").hasRole("ADMIN")
-                                .requestMatchers("/api/submissions/*/result").hasRole("ADMIN")
-                                .requestMatchers("/api/submissions/stats/by-language").hasRole("ADMIN")
+
                                 .anyRequest().authenticated()
                 );
 

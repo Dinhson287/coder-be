@@ -35,27 +35,38 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public SubmissionResponseDTO createSubmission(Long userId, SubmissionCreateDTO dto) {
-        Users user = usersRepo.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+        try {
+            Users user = usersRepo.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
-        Exercises exercise = exercisesRepo.findById(dto.getExerciseId())
-                .orElseThrow(() -> new RuntimeException("Exercise không tồn tại"));
+            Exercises exercise = exercisesRepo.findById(dto.getExerciseId())
+                    .orElseThrow(() -> new RuntimeException("Exercise not found with ID: " + dto.getExerciseId()));
 
-        Languages language = languagesRepo.findById(dto.getLanguageId())
-                .orElseThrow(() -> new RuntimeException("Language không tồn tại"));
+            Languages language = languagesRepo.findById(dto.getLanguageId())
+                    .orElseThrow(() -> new RuntimeException("Language not found with ID: " + dto.getLanguageId()));
 
-        Submission submission = new Submission();
-        submission.setUser(user);
-        submission.setExercise(exercise);
-        submission.setLanguage(language);
-        submission.setSourceCode(dto.getSourceCode());
-        submission.setStatus(Submission.Status.PENDING);
+            System.out.println("Creating submission for:");
+            System.out.println("- User: " + user.getUsername());
+            System.out.println("- Exercise: " + exercise.getTitle());
+            System.out.println("- Language: " + language.getName() + " (Judge0 Code: " + language.getCode() + ")");
 
-        Submission saved = submissionRepo.save(submission);
+            Submission submission = new Submission();
+            submission.setUser(user);
+            submission.setExercise(exercise);
+            submission.setLanguage(language);
+            submission.setSourceCode(dto.getSourceCode());
+            submission.setStatus(Submission.Status.PENDING);
 
-        executeCodeAsync(saved.getId());
+            Submission saved = submissionRepo.save(submission);
 
-        return convertToResponseDTO(saved);
+            executeCodeAsync(saved.getId(), language.getCode());
+
+            return convertToResponseDTO(saved);
+        } catch (Exception e) {
+            System.err.println("Error creating submission: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create submission: " + e.getMessage());
+        }
     }
 
     @Override
@@ -159,8 +170,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionRepo.delete(submission);
     }
 
-    private void executeCodeAsync(Long submissionId) {
-        System.out.println("Executing code for submission: " + submissionId);
+    private void executeCodeAsync(Long submissionId, Integer judge0LanguageCode) {
+        System.out.println("Executing code for submission " + submissionId + " with Judge0 language code: " + judge0LanguageCode);
     }
 
     private SubmissionResponseDTO convertToResponseDTO(Submission submission) {
