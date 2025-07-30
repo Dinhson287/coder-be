@@ -189,7 +189,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         dto.setStderr(submission.getStderr());
         dto.setCompileOutput(submission.getCompileOutput());
         dto.setTime(submission.getTime());
-        dto.setMemory(submission.getMemory());
         dto.setCreatedAt(submission.getCreatedAt().toString());
         return dto;
     }

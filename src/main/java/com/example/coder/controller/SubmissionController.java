@@ -91,9 +91,23 @@ public class SubmissionController {
         return ResponseEntity.ok(submissions);
     }
 
+    // THÊM: Endpoint để cập nhật kết quả submission (không cần admin)
     @PutMapping("/{id}/result")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SubmissionResponseDTO> updateSubmissionResult(
+            @PathVariable Long id,
+            @RequestBody SubmissionUpdateDTO dto) {
+        try {
+            SubmissionResponseDTO response = submissionService.updateSubmissionResult(id, dto);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    // Endpoint admin để cập nhật submission result (giữ lại cho admin)
+    @PutMapping("/{id}/admin-result")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SubmissionResponseDTO> updateSubmissionResultByAdmin(
             @PathVariable Long id,
             @RequestBody SubmissionUpdateDTO dto,
             Authentication auth) {
@@ -116,7 +130,6 @@ public class SubmissionController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSubmission(@PathVariable Long id, @RequestParam Long userId) {
-
         submissionService.deleteSubmission(id, userId, false);
         return ResponseEntity.noContent().build();
     }
