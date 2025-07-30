@@ -13,6 +13,10 @@ public interface ExcercisesService {
     ResponseEntity<Exercises> getExerciseById(Long id);
     ResponseEntity<List<Exercises>> getExercisesByDifficulty(String difficulty);
     ResponseEntity<List<Exercises>> getExercisesByTitle(String keyword);
+    ResponseEntity<List<Exercises>> getExercisesByTopic(String topic);
+    ResponseEntity<List<Exercises>> getExercisesByTopicAndDifficulty(String topic, String difficulty);
+    ResponseEntity<List<String>> getAllTopics();
+    ResponseEntity<List<Exercises>> searchExercises(String keyword);
     ResponseEntity<Exercises> updateExercise(Long id, Exercises exercises);
     ResponseEntity<Exercises> deleteExercise(Long id);
 }

@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -23,6 +25,8 @@ public class ExercisesServiceImp implements ExcercisesService {
     @Transactional
     public ResponseEntity<Exercises> addExercise(Exercises exercises) {
         validateExercise(exercises);
+        // Chuẩn hóa topics trước khi lưu
+        normalizeTopics(exercises);
         Exercises savedExercises = exercisesRepo.save(exercises);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedExercises);
     }
@@ -34,8 +38,27 @@ public class ExercisesServiceImp implements ExcercisesService {
 
         validateTitle(exercise.getTitle());
         validateDescription(exercise.getDescription());
+        validateTopics(exercise.getTopics());
 
         checkTitleDuplicate(exercise.getTitle(), null);
+    }
+
+    private void validateTopics(String topics) {
+        if (topics != null && topics.length() > 1000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Topics field is too long (max 1000 characters)");
+        }
+    }
+
+    private void normalizeTopics(Exercises exercise) {
+        if (exercise.getTopics() != null && !exercise.getTopics().trim().isEmpty()) {
+            // Chuẩn hóa: trim spaces, loại bỏ empty topics, chuyển về lowercase để consistency
+            String normalizedTopics = Arrays.stream(exercise.getTopics().split(","))
+                    .map(String::trim)
+                    .filter(topic -> !topic.isEmpty())
+                    .map(topic -> topic.substring(0, 1).toUpperCase() + topic.substring(1).toLowerCase())
+                    .collect(Collectors.joining(", "));
+            exercise.setTopics(normalizedTopics.isEmpty() ? null : normalizedTopics);
+        }
     }
 
     private void checkTitleDuplicate(String title, Long excludeId) {
@@ -87,13 +110,13 @@ public class ExercisesServiceImp implements ExcercisesService {
     }
 
     @Override
-    public ResponseEntity<List<Exercises>> getExercisesByDifficulty(String title) {
+    public ResponseEntity<List<Exercises>> getExercisesByDifficulty(String difficulty) {
         try {
-            Exercises.Difficulty difficulty = Exercises.Difficulty.fromString(title);
-            List<Exercises> exercises = exercisesRepo.findByDifficulty(difficulty);
+            Exercises.Difficulty difficultyEnum = Exercises.Difficulty.fromString(difficulty);
+            List<Exercises> exercises = exercisesRepo.findByDifficulty(difficultyEnum);
             return ResponseEntity.ok(exercises);
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
@@ -103,6 +126,52 @@ public class ExercisesServiceImp implements ExcercisesService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Keyword cannot be empty");
         }
         List<Exercises> exercises = exercisesRepo.findByTitleLike(keyword.trim());
+        return ResponseEntity.ok(exercises);
+    }
+
+    @Override
+    public ResponseEntity<List<Exercises>> getExercisesByTopic(String topic) {
+        if(topic == null || topic.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Topic cannot be empty");
+        }
+        List<Exercises> exercises = exercisesRepo.findByTopicsContaining(topic.trim());
+        return ResponseEntity.ok(exercises);
+    }
+
+    @Override
+    public ResponseEntity<List<Exercises>> getExercisesByTopicAndDifficulty(String topic, String difficulty) {
+        if(topic == null || topic.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Topic cannot be empty");
+        }
+        try {
+            Exercises.Difficulty difficultyEnum = Exercises.Difficulty.fromString(difficulty);
+            List<Exercises> exercises = exercisesRepo.findByTopicsContainingAndDifficulty(topic.trim(), difficultyEnum);
+            return ResponseEntity.ok(exercises);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    @Override
+    public ResponseEntity<List<String>> getAllTopics() {
+        List<String> allTopicsStrings = exercisesRepo.findAllDistinctTopics();
+        // Parse tất cả topics từ các string và tạo danh sách unique
+        List<String> uniqueTopics = allTopicsStrings.stream()
+                .flatMap(topicsString -> Arrays.stream(topicsString.split(",")))
+                .map(String::trim)
+                .filter(topic -> !topic.isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(uniqueTopics);
+    }
+
+    @Override
+    public ResponseEntity<List<Exercises>> searchExercises(String keyword) {
+        if(keyword == null || keyword.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Keyword cannot be empty");
+        }
+        List<Exercises> exercises = exercisesRepo.findByTitleOrTopicsContaining(keyword.trim());
         return ResponseEntity.ok(exercises);
     }
 
@@ -134,6 +203,17 @@ public class ExercisesServiceImp implements ExcercisesService {
         if (exercise.getSampleOutput() != null) {
             existingExercise.setSampleOutput(exercise.getSampleOutput().trim());
         }
+
+        // Xử lý topics - cho phép cập nhật kể cả khi là string rỗng
+        if (exercise.getTopics() != null) {
+            if (exercise.getTopics().trim().isEmpty()) {
+                existingExercise.setTopics(null); // Set null nếu rỗng
+            } else {
+                existingExercise.setTopics(exercise.getTopics().trim());
+                normalizeTopics(existingExercise);
+            }
+        }
+
         Exercises updatedExercise = exercisesRepo.save(existingExercise);
         return ResponseEntity.ok(updatedExercise);
     }
@@ -166,6 +246,11 @@ public class ExercisesServiceImp implements ExcercisesService {
 
         if (exercise.getDescription() != null && !exercise.getDescription().trim().isEmpty()) {
             validateDescription(exercise.getDescription());
+        }
+
+        // Validate topics - cho phép topics là null hoặc empty
+        if (exercise.getTopics() != null && !exercise.getTopics().trim().isEmpty()) {
+            validateTopics(exercise.getTopics());
         }
     }
 }

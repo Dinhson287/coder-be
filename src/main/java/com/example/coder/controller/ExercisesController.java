@@ -60,6 +60,44 @@ public class ExercisesController {
         }
     }
 
+    @GetMapping("/topic/{topic}")
+    public ResponseEntity<List<Exercises>> getExercisesByTopic(@PathVariable String topic) {
+        try {
+            return excercisesService.getExercisesByTopic(topic);
+        }catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/topic/{topic}/difficulty/{difficulty}")
+    public ResponseEntity<List<Exercises>> getExercisesByTopicAndDifficulty(
+            @PathVariable String topic,
+            @PathVariable String difficulty) {
+        try {
+            return excercisesService.getExercisesByTopicAndDifficulty(topic, difficulty);
+        }catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/topics")
+    public ResponseEntity<List<String>> getAllTopics() {
+        try {
+            return excercisesService.getAllTopics();
+        }catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/search/all")
+    public ResponseEntity<List<Exercises>> searchExercises(@RequestParam String keyword) {
+        try {
+            return excercisesService.searchExercises(keyword);
+        }catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<Exercises> updateExercise(@PathVariable Long id, @RequestBody Exercises exercise) {
         try {

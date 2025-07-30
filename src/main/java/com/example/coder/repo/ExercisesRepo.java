@@ -26,4 +26,16 @@ public interface ExercisesRepo extends JpaRepository<Exercises, Long> {
     List<Exercises> findAllByOrderByCreatedAtDesc();
 
     List<Exercises> findAllByOrderByCreatedAtAsc();
+
+    @Query("select e from Exercises e where lower(e.topics) like lower(concat('%',:topic,'%'))")
+    List<Exercises> findByTopicsContaining(@Param("topic") String topic);
+
+    @Query("select e from Exercises e where lower(e.topics) like lower(concat('%',:topic,'%')) and e.difficulty = :difficulty")
+    List<Exercises> findByTopicsContainingAndDifficulty(@Param("topic") String topic, @Param("difficulty") Exercises.Difficulty difficulty);
+
+    @Query("select distinct e.topics from Exercises e where e.topics is not null and e.topics != ''")
+    List<String> findAllDistinctTopics();
+
+    @Query("select e from Exercises e where (lower(e.title) like lower(concat('%',:keyword,'%')) or lower(e.topics) like lower(concat('%',:keyword,'%')))")
+    List<Exercises> findByTitleOrTopicsContaining(@Param("keyword") String keyword);
 }

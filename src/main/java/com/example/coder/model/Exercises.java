@@ -10,6 +10,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Entity
 @Getter
@@ -39,6 +42,9 @@ public class Exercises {
     @Column(name = "sample_output", columnDefinition = "TEXT")
     private String sampleOutput;
 
+    @Column(name = "topics", columnDefinition = "TEXT")
+    private String topics;
+
     @Column(name = "created_at",
             columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP",
             updatable = false)
@@ -49,6 +55,40 @@ public class Exercises {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
+    }
+
+    @Transient
+    public List<String> getTopicsList() {
+        if (topics == null || topics.trim().isEmpty()) {
+            return List.of();
+        }
+        return Arrays.stream(topics.split(","))
+                .map(String::trim)
+                .filter(topic -> !topic.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    @Transient
+    public void setTopicsList(List<String> topicsList) {
+        if (topicsList == null || topicsList.isEmpty()) {
+            this.topics = null;
+        } else {
+            this.topics = topicsList.stream()
+                    .map(String::trim)
+                    .filter(topic -> !topic.isEmpty())
+                    .collect(Collectors.joining(", "));
+        }
+    }
+
+    @Transient
+    public boolean hasTopics() {
+        return topics != null && !topics.trim().isEmpty();
+    }
+
+    @Transient
+    public boolean containsTopic(String topic) {
+        return getTopicsList().stream()
+                .anyMatch(t -> t.equalsIgnoreCase(topic.trim()));
     }
 
     public enum Difficulty {
