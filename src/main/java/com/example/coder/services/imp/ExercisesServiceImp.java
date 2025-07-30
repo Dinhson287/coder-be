@@ -58,6 +58,8 @@ public class ExercisesServiceImp implements ExcercisesService {
                     .map(topic -> topic.substring(0, 1).toUpperCase() + topic.substring(1).toLowerCase())
                     .collect(Collectors.joining(", "));
             exercise.setTopics(normalizedTopics.isEmpty() ? null : normalizedTopics);
+        } else {
+            exercise.setTopics(null);
         }
     }
 
@@ -176,18 +178,21 @@ public class ExercisesServiceImp implements ExcercisesService {
     }
 
     @Override
+    @Transactional
     public ResponseEntity<Exercises> updateExercise(Long id, Exercises exercise){
         if(id == null || id <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid exercise ID");
         }
-        Optional<Exercises> existingExerciseOpt  = exercisesRepo.findById(id);
-        if(!existingExerciseOpt .isPresent()) {
+
+        Optional<Exercises> existingExerciseOpt = exercisesRepo.findById(id);
+        if(!existingExerciseOpt.isPresent()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercise not found");
         }
 
-        Exercises existingExercise  = existingExerciseOpt .get();
+        Exercises existingExercise = existingExerciseOpt.get();
         validateExerciseForUpdate(id, exercise);
 
+        // Cập nhật các trường
         if (exercise.getTitle() != null && !exercise.getTitle().trim().isEmpty()) {
             existingExercise.setTitle(exercise.getTitle().trim());
         }
@@ -204,17 +209,11 @@ public class ExercisesServiceImp implements ExcercisesService {
             existingExercise.setSampleOutput(exercise.getSampleOutput().trim());
         }
 
-        // Xử lý topics - cho phép cập nhật kể cả khi là string rỗng
-        if (exercise.getTopics() != null) {
-            if (exercise.getTopics().trim().isEmpty()) {
-                existingExercise.setTopics(null); // Set null nếu rỗng
-            } else {
-                existingExercise.setTopics(exercise.getTopics().trim());
-                normalizeTopics(existingExercise);
-            }
-        }
-
+        // Xử lý topics - QUAN TRỌNG: Luôn cập nhật topics kể cả khi là empty string
+        existingExercise.setTopics(exercise.getTopics());
+        normalizeTopics(existingExercise);
         Exercises updatedExercise = exercisesRepo.save(existingExercise);
+
         return ResponseEntity.ok(updatedExercise);
     }
 
@@ -248,9 +247,6 @@ public class ExercisesServiceImp implements ExcercisesService {
             validateDescription(exercise.getDescription());
         }
 
-        // Validate topics - cho phép topics là null hoặc empty
-        if (exercise.getTopics() != null && !exercise.getTopics().trim().isEmpty()) {
-            validateTopics(exercise.getTopics());
-        }
+        validateTopics(exercise.getTopics());
     }
 }
