@@ -3,6 +3,7 @@ package com.example.coder.controller;
 import com.example.coder.model.Exercises;
 import com.example.coder.services.ExcercisesService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -113,6 +114,17 @@ public class ExercisesController {
             return excercisesService.deleteExercise(id);
         }catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<Page<Exercises>> getAllExercisesPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            return excercisesService.getAllExercisesPaged(page, size);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }

@@ -4,6 +4,9 @@ import com.example.coder.model.Users;
 import com.example.coder.repo.UsersRepo;
 import com.example.coder.services.UsersService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -94,6 +97,12 @@ public class UsersServiceImp implements UsersService {
 
         usersRepo.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public Page<Users> getAllUsersPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return usersRepo.findAll(pageable);
     }
 
     private void validateUser(Users user) {

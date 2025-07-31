@@ -1,6 +1,7 @@
 package com.example.coder.services;
 
 import com.example.coder.model.Exercises;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -19,4 +20,5 @@ public interface ExcercisesService {
     ResponseEntity<List<Exercises>> searchExercises(String keyword);
     ResponseEntity<Exercises> updateExercise(Long id, Exercises exercises);
     ResponseEntity<Exercises> deleteExercise(Long id);
+    ResponseEntity<Page<Exercises>> getAllExercisesPaged(int page, int size);
 }

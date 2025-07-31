@@ -44,7 +44,6 @@ public class SubmissionController {
         return ResponseEntity.ok(response);
     }
 
-    // THAY ĐỔI: Nhận userId từ query param
     @GetMapping("/my-submissions")
     public ResponseEntity<List<SubmissionResponseDTO>> getMySubmissions(@RequestParam Long userId) {
         List<SubmissionResponseDTO> submissions = submissionService.getSubmissionsByUser(userId);
@@ -83,7 +82,6 @@ public class SubmissionController {
         return submission.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
-    // Admin endpoints - vẫn cần authentication
     @GetMapping("/pending")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<SubmissionResponseDTO>> getPendingSubmissions(Authentication auth) {
@@ -91,7 +89,6 @@ public class SubmissionController {
         return ResponseEntity.ok(submissions);
     }
 
-    // THÊM: Endpoint để cập nhật kết quả submission (không cần admin)
     @PutMapping("/{id}/result")
     public ResponseEntity<SubmissionResponseDTO> updateSubmissionResult(
             @PathVariable Long id,
@@ -104,7 +101,6 @@ public class SubmissionController {
         }
     }
 
-    // Endpoint admin để cập nhật submission result (giữ lại cho admin)
     @PutMapping("/{id}/admin-result")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SubmissionResponseDTO> updateSubmissionResultByAdmin(

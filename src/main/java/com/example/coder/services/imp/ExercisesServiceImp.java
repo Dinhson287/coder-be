@@ -4,15 +4,17 @@ import com.example.coder.model.Exercises;
 import com.example.coder.repo.ExercisesRepo;
 import com.example.coder.services.ExcercisesService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -25,7 +27,6 @@ public class ExercisesServiceImp implements ExcercisesService {
     @Transactional
     public ResponseEntity<Exercises> addExercise(Exercises exercises) {
         validateExercise(exercises);
-        // Chuẩn hóa topics trước khi lưu
         normalizeTopics(exercises);
         Exercises savedExercises = exercisesRepo.save(exercises);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedExercises);
@@ -51,7 +52,6 @@ public class ExercisesServiceImp implements ExcercisesService {
 
     private void normalizeTopics(Exercises exercise) {
         if (exercise.getTopics() != null && !exercise.getTopics().trim().isEmpty()) {
-            // Chuẩn hóa: trim spaces, loại bỏ empty topics, chuyển về lowercase để consistency
             String normalizedTopics = Arrays.stream(exercise.getTopics().split(","))
                     .map(String::trim)
                     .filter(topic -> !topic.isEmpty())
@@ -157,7 +157,6 @@ public class ExercisesServiceImp implements ExcercisesService {
     @Override
     public ResponseEntity<List<String>> getAllTopics() {
         List<String> allTopicsStrings = exercisesRepo.findAllDistinctTopics();
-        // Parse tất cả topics từ các string và tạo danh sách unique
         List<String> uniqueTopics = allTopicsStrings.stream()
                 .flatMap(topicsString -> Arrays.stream(topicsString.split(",")))
                 .map(String::trim)
@@ -192,7 +191,6 @@ public class ExercisesServiceImp implements ExcercisesService {
         Exercises existingExercise = existingExerciseOpt.get();
         validateExerciseForUpdate(id, exercise);
 
-        // Cập nhật các trường
         if (exercise.getTitle() != null && !exercise.getTitle().trim().isEmpty()) {
             existingExercise.setTitle(exercise.getTitle().trim());
         }
@@ -209,7 +207,6 @@ public class ExercisesServiceImp implements ExcercisesService {
             existingExercise.setSampleOutput(exercise.getSampleOutput().trim());
         }
 
-        // Xử lý topics - QUAN TRỌNG: Luôn cập nhật topics kể cả khi là empty string
         existingExercise.setTopics(exercise.getTopics());
         normalizeTopics(existingExercise);
         Exercises updatedExercise = exercisesRepo.save(existingExercise);
@@ -249,4 +246,19 @@ public class ExercisesServiceImp implements ExcercisesService {
 
         validateTopics(exercise.getTopics());
     }
+
+    @Override
+    public ResponseEntity<Page<Exercises>> getAllExercisesPaged(int page, int size) {
+        if (page < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page number must be positive");
+        }
+        if (size <= 0 || size > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Size must be between 1 and 100");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Exercises> exercisesPage = exercisesRepo.findAll(pageable);
+        return ResponseEntity.ok(exercisesPage);
+    }
+
 }

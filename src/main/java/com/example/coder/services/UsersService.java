@@ -1,6 +1,7 @@
 package com.example.coder.services;
 
 import com.example.coder.model.Users;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -13,4 +14,5 @@ public interface UsersService {
     ResponseEntity<Users> getUserById(Long id);
     ResponseEntity<Users> updateUser(Long id, Users user);
     ResponseEntity<Void> deleteUser(Long id);
+    Page<Users> getAllUsersPaged(int page, int size);
 }
