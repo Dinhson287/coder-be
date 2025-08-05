@@ -48,8 +48,6 @@ public class Submission {
 
     private Double time;
 
-    private Integer memory;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
