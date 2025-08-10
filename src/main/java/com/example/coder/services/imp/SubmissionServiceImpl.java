@@ -123,7 +123,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setStderr(dto.getStderr());
         submission.setCompileOutput(dto.getCompileOutput());
         submission.setTime(dto.getTime());
-        submission.setMemory(dto.getMemory());
 
         Submission updated = submissionRepo.save(submission);
         return convertToResponseDTO(updated);

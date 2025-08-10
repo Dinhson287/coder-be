@@ -9,5 +9,4 @@ public class SubmissionUpdateDTO {
     private String stderr;
     private String compileOutput;
     private Double time;
-    private Integer memory;
 }
