@@ -50,7 +50,7 @@ public class SubmissionController {
         return ResponseEntity.ok(submissions);
     }
 
-    @GetMapping("/my-submissions/paged")
+    @GetMapping("/my-submissions/page")
     public ResponseEntity<Page<SubmissionResponseDTO>> getMySubmissionsPaged(
             @RequestParam Long userId,
             @RequestParam(defaultValue = "0") int page,
@@ -122,6 +122,21 @@ public class SubmissionController {
     public ResponseEntity<List<Object[]>> getSubmissionStatsByLanguage(Authentication auth) {
         List<Object[]> stats = submissionService.getSubmissionStatsByLanguage();
         return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/my-submissions/paged")
+    public ResponseEntity<Page<SubmissionResponseDTO>> getMySubmissionsPaged(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Long languageId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String exerciseKeyword) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<SubmissionResponseDTO> submissions = submissionService.getSubmissionsByUserPagedWithFilters(
+                userId, pageable, languageId, status, exerciseKeyword);
+        return ResponseEntity.ok(submissions);
     }
 
     @DeleteMapping("/{id}")

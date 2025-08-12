@@ -35,4 +35,12 @@ public interface SubmissionService {
     List<Object[]> getSubmissionStatsByLanguage();
 
     void deleteSubmission(Long id, Long currentUserId, boolean isAdmin);
+
+    Page<SubmissionResponseDTO> getSubmissionsByUserPagedWithFilters(
+            Long userId,
+            Pageable pageable,
+            Long languageId,
+            String status,
+            String exerciseKeyword
+    );
 }

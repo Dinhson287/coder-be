@@ -191,4 +191,31 @@ public class SubmissionServiceImpl implements SubmissionService {
         dto.setCreatedAt(submission.getCreatedAt().toString());
         return dto;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SubmissionResponseDTO> getSubmissionsByUserPagedWithFilters(
+            Long userId,
+            Pageable pageable,
+            Long languageId,
+            String status,
+            String exerciseKeyword) {
+
+        Submission.Status statusEnum = null;
+        if (status != null && !status.isEmpty()) {
+            try {
+                statusEnum = Submission.Status.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                statusEnum = null;
+            }
+        }
+
+        return submissionRepo.findByUserIdWithFilters(
+                userId,
+                languageId,
+                statusEnum,
+                exerciseKeyword,
+                pageable
+        ).map(this::convertToResponseDTO);
+    }
 }

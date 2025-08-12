@@ -32,4 +32,17 @@ public interface SubmissionRepo extends JpaRepository<Submission, Long> {
 
     @Query("SELECT l.name, COUNT(s) FROM Submission s JOIN s.language l GROUP BY l.name")
     List<Object[]> countSubmissionsByLanguage();
+
+    @Query("SELECT s FROM Submission s WHERE s.user.id = :userId " +
+            "AND (:languageId IS NULL OR s.language.id = :languageId) " +
+            "AND (:status IS NULL OR s.status = :status) " +
+            "AND (:exerciseKeyword IS NULL OR LOWER(s.exercise.title) LIKE LOWER(CONCAT('%', :exerciseKeyword, '%'))) " +
+            "ORDER BY s.createdAt DESC")
+    Page<Submission> findByUserIdWithFilters(
+            @Param("userId") Long userId,
+            @Param("languageId") Long languageId,
+            @Param("status") Submission.Status status,
+            @Param("exerciseKeyword") String exerciseKeyword,
+            Pageable pageable
+    );
 }
